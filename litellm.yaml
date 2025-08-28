@@ -1,0 +1,15 @@
+# Registers a single model with the proxy: "ollama/phi3:mini"
+# You can add more entries to model_list if needed.
+
+model_list:
+  - model_name: ollama/phi3:mini
+    litellm_params:
+      model: ollama/phi3:mini
+      api_base: http://ollama:11434
+
+# Global proxy settings
+litellm_settings:
+  drop_params: true           # auto-remove unsupported params (e.g., logprobs)
+  num_workers: 4              # simple concurrency
+  telemetry: false
+  proxy_logging: false
