@@ -1,0 +1,52 @@
+
+---
+
+## docker-compose.yml
+
+```yaml
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=5m
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+    command: [ "serve" ]
+
+  # One-shot helper to pull the model into the shared volume
+  puller:
+    image: ollama/ollama:latest
+    depends_on:
+      - ollama
+    volumes:
+      - ollama:/root/.ollama
+    entrypoint: ["/bin/sh","-lc"]
+    # Wait for ollama to be accepting connections, then pull the model
+    command: >
+      'until ollama list >/dev/null 2>&1; do
+         echo "waiting for ollama..."; sleep 1;
+       done;
+       echo "pulling ${MODEL_NAME:-phi3:mini}...";
+       ollama pull ${MODEL_NAME:-phi3:mini};
+       echo "done."'
+    restart: "no"
+
+  proxy:
+    image: ghcr.io/berriai/litellm:main
+    container_name: litellm-proxy
+    depends_on:
+      - ollama
+      - puller
+    ports:
+      - "${PROXY_PORT:-4000}:4000"
+    volumes:
+      - ./litellm.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml"]
+    restart: unless-stopped
+
+volumes:
+  ollama:
